@@ -3,14 +3,11 @@ import asana
 import json
 import os
 
-
-# Access token obtained here - https://app.asana.com/0/developer-console
-
-class Task(object):
+class SyncerTask(object):
 
 	def __init__(self,id:str,name:str):
-		self.id = id
-		self.name = name
+		self.id : str = id
+		self.name : str = name
 
 class SyncerConfig(object):
 
@@ -20,17 +17,17 @@ class SyncerConfig(object):
 		f = open("config.json")
 		d = json.loads(f.read())
 		f.close()
-		self.access_token = d["access_token"]
-		self.desired_projects = d["desired_projects"]
-		self.workspace_name = d["workspace_name"]
+		self.access_token : str = d["access_token"]
+		self.desired_projects : list[str] = d["desired_projects"]
+		self.workspace_name : str = d["workspace_name"]
 
 class SyncerProject(object):
 
 	def __init__(self):
-		self.id = None
-		self.name = None
-		self.backlog_id = None
-		self.tasks = []
+		self.id : str = None
+		self.name : str = None
+		self.backlog_id :str = None
+		self.tasks : list[SyncerTask]= []
 	
 	def from_data(self,data:dict):
 		self.id = data.get("id")
@@ -48,8 +45,8 @@ class SyncerProject(object):
 class SyncerState(object):
 
 	def __init__(self):
-		self.workspace_id = None
-		self.projects = []
+		self.workspace_id : str = None
+		self.projects : list[SyncerProject] = []
 	
 	def from_data(self,data:dict):
 		self.workspace_id = data.get("workspace_id")
@@ -84,9 +81,9 @@ class SyncerState(object):
 class Syncer(object):
 
 	def __init__(self,config:SyncerConfig):
-		self.config = config
+		self.config : SyncerConfig = config
 		self.client = asana.Client.access_token(config.access_token)		
-		self.state = SyncerState()
+		self.state : SyncerState = SyncerState()
 
 	def load_workspace(self):
 		me = self.client.users.me()
@@ -174,7 +171,7 @@ class Syncer(object):
 		for r in result:			
 			rtype = r["resource_type"]
 			if rtype == "task":
-				task = Task(id=r["gid"],name=r["name"])
+				task = SyncerTask(id=r["gid"],name=r["name"])
 				project.tasks.append(task)
 				print(f"> Found {task.id}:{task.name}")
 
