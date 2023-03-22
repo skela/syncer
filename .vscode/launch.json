@@ -8,7 +8,7 @@
 			"name": "Syncer",
 			"type": "python",
 			"request": "launch",
-			"program": "${file}",
+			"program": "syncer.py",
 			"console": "integratedTerminal",
 			"justMyCode": true
 		}

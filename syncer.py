@@ -3,11 +3,18 @@ import asana
 import json
 import os
 
+from github import Github
+
 class SyncerTask(object):
 
-	def __init__(self,id:str,name:str):
-		self.id : str = id
-		self.name : str = name
+	fields : str = "name,resource_type,notes,permalink_url,completed"
+
+	def __init__(self,data:dict):
+		self.id : str = data["gid"]
+		self.name : str = data["name"]
+		self.notes : str = data["notes"]
+		self.link : str = data["permalink_url"]
+		self.completed : bool = data["completed"]
 
 class SyncerConfig(object):
 
@@ -17,9 +24,14 @@ class SyncerConfig(object):
 		f = open("config.json")
 		d = json.loads(f.read())
 		f.close()
-		self.access_token : str = d["access_token"]
-		self.desired_projects : list[str] = d["desired_projects"]
-		self.workspace_name : str = d["workspace_name"]
+
+		asana : dict = d["asana"]
+		self.asana_access_token : str = asana["access_token"]
+		self.desired_projects : list[str] = asana["desired_projects"]
+		self.workspace_name : str = asana["workspace_name"]
+		
+		github : dict = d["github"]
+		self.github_access_token : str = github["access_token"]
 
 class SyncerProject(object):
 
@@ -68,7 +80,7 @@ class SyncerState(object):
 
 	def save(self):
 		f = open("state.db","w")
-		f.write(json.dumps(self.data))
+		f.write(json.dumps(self.data,indent="\t"))
 		f.close()
 
 	def load(self):
@@ -82,14 +94,15 @@ class Syncer(object):
 
 	def __init__(self,config:SyncerConfig):
 		self.config : SyncerConfig = config
-		self.client = asana.Client.access_token(config.access_token)		
+		self.asana = asana.Client.access_token(config.asana_access_token)
+		self.github = Github(config.github_access_token)
 		self.state : SyncerState = SyncerState()
 
 	def load_workspace(self):
-		me = self.client.users.me()
+		me = self.asana.users.me()
 		print("Hello " + me['name'])
 		
-		print("Loading workspaces...")
+		print("Loading asana workspaces...")
 		workspaces = me['workspaces']
 		workspace_id = None
 
@@ -108,7 +121,7 @@ class Syncer(object):
 		print("Loading desired projects...")
 		projects = []
 
-		result = self.client.projects.get_projects_for_workspace(self.state.workspace_id, opt_pretty=True)
+		result = self.asana.projects.get_projects_for_workspace(self.state.workspace_id, opt_pretty=True)
 
 		counter = 0
 		for r in result:
@@ -128,9 +141,9 @@ class Syncer(object):
 		self.state.save()				
 
 	def load_backlog_for_project(self,project:SyncerProject):
-		print(f"Loading backlog for project {project.name}...")
+		print(f"Loading asana backlog for project {project.name}...")
 
-		result = self.client.sections.get_sections_for_project(project.id, opt_pretty=True)
+		result = self.asana.sections.get_sections_for_project(project.id, opt_pretty=True)
 		
 		backlog_id = None
 		for section in result:
@@ -166,14 +179,15 @@ class Syncer(object):
 			print(f"Setup loaded from stored state successfully with {len(self.state.projects)} projects")
 
 	def check(self,project:SyncerProject):
-		print(f"Checking backlog for project {project.name}...")
-		result = self.client.tasks.get_tasks_for_section(project.backlog_id, opt_pretty=True)		
+		print(f"Checking asana backlog for project {project.name}...")
+		result = self.asana.tasks.get_tasks_for_section(project.backlog_id, opt_pretty=True,opt_fields=SyncerTask.fields)
 		for r in result:			
 			rtype = r["resource_type"]
 			if rtype == "task":
-				task = SyncerTask(id=r["gid"],name=r["name"])
+				task = SyncerTask(data=r)
 				project.tasks.append(task)
 				print(f"> Found {task.id}:{task.name}")
+				print(r)
 
 config = SyncerConfig()
 syncer = Syncer(config=config)

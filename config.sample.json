@@ -1,8 +1,14 @@
 {
-	"access_token":"Personal access token obtained from https://app.asana.com/0/developer-console",
-	"workspace_name":"The name of the workspace",
-	"desired_projects": [
-		"Name of a project (Board)",
-		"Name of a project (Board)"
-	]
+	"asana":{
+		"access_token":"Personal access token obtained from https://app.asana.com/0/developer-console",
+		"workspace_name":"The name of the workspace",
+		"desired_projects": [
+			"Name of a project (Board)",
+			"Name of a project (Board)"
+		]
+	},
+
+	"github":{
+		"access_token":"Github personal access token"
+	}
 }
